@@ -1,0 +1,26 @@
+
+    <h1>Datos Productos</h1>
+
+    {{#if listExists }}
+  <table class="table table-striped table-dark">
+        <thead>
+            <tr>
+                <th scope="col">Nombre</th>
+                <th scope="col">Precio</th>
+                <th scope="col">Imagen</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{#each datos}}
+                <tr>
+                    <td>{{this.title}}</td>
+                    <td>${{this.price}}</td>
+                    <td><img src={{this.thumbnail}} class="imgTable"></td>
+                </tr>
+            {{/each}}
+        </tbody>
+    </table>  
+{{else}}
+  
+    <h3>{{ data }}</h3>
+{{/if}}
