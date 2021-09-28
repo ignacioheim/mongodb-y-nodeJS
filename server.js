@@ -4,6 +4,7 @@ import handlebars from 'express-handlebars';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+import { Server } from "socket.io";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -20,7 +21,6 @@ const server = app.listen(PORT,()=>{
 server.on("error", error => console.log(`Error en servidor ${error}`))
 
 app.use(express.static('public'));
-
 
 app.engine('hbs', handlebars({
     extname: '.hbs',
@@ -78,7 +78,7 @@ router.post('/guardar', (req,res) => {
     let item = new modulo.Product(title, price,thumbnail) 
     item.addProducts();
     item.addId();
-    res.redirect('listar')
+    res.redirect('guardar')
 }) 
 
 router.put('/actualizar/:id', (req,res)=>{
@@ -104,3 +104,10 @@ router.delete('/borrar/:id', (req,res)=>{
         res.json({error: 'Producto no encontrado'})
     }
 })
+
+const io = new Server(server);
+
+io.on("connection", (socket) => {
+    console.log("Usario conectado");
+    socket.emit('productos', listProducts)
+  });   

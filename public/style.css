@@ -1,4 +1,17 @@
+html, body {
+    background-color:darkgrey;
+    margin-left: 150px;
+    margin-right: 150px;
+    
+}
 
+h1 {
+    text-align: center;
+}
+
+label {
+    font-weight: bolder;
+}
 
 .imgTable {
     width: 40px;
