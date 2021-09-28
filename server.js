@@ -53,10 +53,6 @@ router.get('/listar', (req,res) => {
     }
 }) 
 
-// router.get('/', function(req, res) {
-//     res.render('index', { datos: json(listProducts) });
-// });
-
 router.get('/listar/:id', (req,res) => {
     let params = req.params;
     if (parseInt(params.id)>0 && parseInt(params.id)<=listProducts.length) {
@@ -107,7 +103,14 @@ router.delete('/borrar/:id', (req,res)=>{
 
 const io = new Server(server);
 
+let mensajes = [];
+
 io.on("connection", (socket) => {
     console.log("Usario conectado");
     io.sockets.emit('productos', listProducts)
+    socket.on('nuevo', data=>{
+        mensajes.push(data);
+        io.sockets.emit('mensajes', mensajes)
+        //console.log(mensajes);
+    })
   });   
