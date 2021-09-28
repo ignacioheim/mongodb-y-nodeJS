@@ -22,7 +22,13 @@
   </div>
   </div>
   <br>
-  <button type="submit" class="btn btn-primary">Submit</button>
+  <button type="submit" class="btn btn-primary" onclick="myFunction()">Submit</button>
   </br>
-  <ul></ul>
+  </br>
+  <div id="table"></div>
+  <script>
+    function myFunction() {
+    document.getElementById("table").style.display = "block";
+  }
+  </script>
 </form>

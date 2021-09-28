@@ -109,5 +109,5 @@ const io = new Server(server);
 
 io.on("connection", (socket) => {
     console.log("Usario conectado");
-    socket.emit('productos', listProducts)
+    io.sockets.emit('productos', listProducts)
   });   
