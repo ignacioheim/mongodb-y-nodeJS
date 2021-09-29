@@ -62,7 +62,7 @@ let render = (data) => {
 function envioMensaje(f) {
     let email = document.getElementById("email")
     let mensaje = document.getElementById("texto")
-    socket.emit('nuevo', {email, mensaje: mensaje.value})
+    socket.emit('nuevo', {email: email.value, mensaje: mensaje.value})
     mensaje.value = '';
     return false
 };
