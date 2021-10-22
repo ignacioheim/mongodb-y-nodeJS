@@ -33,6 +33,7 @@ socket.on('productos', (data)=>{
 
 socket.on('mensajes', (data)=>{
     render(data);
+    //console.log(data)
 });
 
 

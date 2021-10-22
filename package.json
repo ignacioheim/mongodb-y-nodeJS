@@ -13,8 +13,11 @@
   "dependencies": {
     "express": "^4.17.1",
     "express-handlebars": "^5.3.3",
+    "knex": "^0.21.17",
+    "mysql": "^2.18.1",
     "path": "^0.12.7",
     "socket.io": "^4.2.0",
+    "sqlite3": "^5.0.2",
     "url": "^0.11.0"
   }
 }
