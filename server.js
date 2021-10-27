@@ -4,21 +4,18 @@ import handlebars from 'express-handlebars';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
-import { Server } from "socket.io";
-import sqlite3 from './options/SQLite3.js';
-import mysql from './options/mariaDB.js';
-import knexMod from 'knex';
+import { Server } from "socket.io";;
+import mongoose from 'mongoose';
+import {Productos}  from './models/productos.js';
+import {Mensajes}  from './models/mensajes.js';
+import moment from 'moment';
+moment.locale('es')
+
 
 // 0. CONEXIONES
 
-const knex = knexMod(sqlite3);
-const knexMy = knexMod(mysql);
-
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-
-//import handlebars  from 
 
 const app = express();
 const PORT = 8080;
@@ -44,28 +41,36 @@ app.set('views', './views')
 app.use(express.json());
 app.use(express.urlencoded({extended:true}));
 
-let listProducts = modulo.products;
 
 app.use('/api/productos', router)
 
+const URI = 'mongodb://localhost:27017/ecommerce';
+
+mongoose.connect(URI, 
+    { 
+        useNewUrlParser: true,
+        useUnifiedTopology: true 
+    })    
+console.log('Conectado a la base de datos de Mongo');
 
 // 1. LISTAR PRODUCTOS
-router.get('/listar', (req,res) => { 
-    if(listProducts) {
-        //console.log(listProducts.title)
-        knexMy.from('articulos').select('*')
-        .then(items => {
-            console.log(items);
-            knexMy.destroy();
-        })
-        .catch(e=>{
-            console.log('Error en Select:', e);
-            knexMy.destroy();
-        });
+
+let listProducts = modulo.products;
+
+// 1.a Cuento la cantidad 
+let countProd = await Productos.count()
+//console.log(countProd);
+let productos = await Productos.find()
+
+
+router.get('/listar', async (req,res) => { 
+    if(countProd>0) {
+        let products = await Productos.find().lean()
+        console.log(products);
         res.render('view', {
-            datos: listProducts,
+            datos: products,
             listExists: true
-        });
+        })
     } else {
         res.render('view',{
             data: "No hay productos cargados."
@@ -73,11 +78,12 @@ router.get('/listar', (req,res) => {
     }
 }) 
 
-// 2. LISTAR PRODUCTO INDIVIDUAL
-router.get('/listar/:id', (req,res) => {
-    let params = req.params;
-    if (parseInt(params.id)>0 && parseInt(params.id)<=listProducts.length) {
-        let producto = listProducts.filter(function(p){return p.id == parseInt(params.id)});
+
+router.get('/listar/:id', async (req,res) => {
+     let id = req.params.id
+     //console.log(id);
+    if (countProd>0) {
+        let producto = await Productos.findOne({_id: id})
         res.json({producto})
     } else {
         res.json({error: 'Producto no encontrado'})
@@ -89,64 +95,36 @@ router.get('/guardar', (req,res)=>{
 })
 
 // 3. GUARDAR PRODUCTOS
-router.post('/guardar', (req,res) => {
+router.post('/guardar', async (req,res) => {
     let titulo = req.body.title
     let precio = req.body.price
     let thumbnail = req.body.thumbnail
     let item = new modulo.Product(titulo, precio,thumbnail) 
     item.addProducts();
-    //item.addId();
+    
     res.redirect('guardar')
     //// CREACIÓN DE TABLA DE PRODUCTOS ////
-    knexMy.schema.createTableIfNotExists('articulos', table => {
-        table.increments('id'),
-        table.string('titulo'),
-        table.decimal('precio'),
-        table.string('thumbnail')
-    })
-    //// INSERTAR PRODUCTOS EN TABLA
-    .then(()=>{
-        console.log('Insertando artículos.');
-        return knexMy('articulos').insert({titulo, precio, thumbnail});
-    })
-    .catch(e=>{
-        console.log('Error en proceso:', e);
-        knexMy.destroy();
-    });
+    let product = await Productos.create({titulo: titulo, precio: precio, thumbnail: thumbnail})
+    console.log(product);    
 }) 
 
 // 4. ACTUALIZAR DATOS DE PRODUCTOS
-router.put('/actualizar/:id', (req,res)=>{
-    let params = req.params.id;
-    if (listProducts) {
-        knexMy.from('articulos').where('id', '=', 2).update({precio: 120})
-        .then(() => {
-            console.log('Artículo actualizado.')
-            knexMy.destroy();
-        })
-        .catch(e=>{
-            console.log('Error en Update:', e);
-            knexMy.destroy();
-        });
-
+router.put('/actualizar/:id', async (req,res)=>{
+    let id = req.params.id;
+       if (countProd>0) {
+           let producto = await Productos.updateOne({_id: id}, {$set: {precio: 300}})
+           res.json({producto})
     } else {
         res.json({error: 'Producto no encontrado'})
     }
 })
 
 // 5. BORRAR PRODUCTOS
-router.delete('/borrar/:id', (req,res)=>{
+router.delete('/borrar/:id', async (req,res)=>{
     let params = req.params.id;
-    if (listProducts) {
-        knexMy.from('articulos').where('id', '=', params).del()
-        .then(() => {
-            console.log('Artículo borrado.');
-            knexMy.destroy();
-        })
-        .catch(e=>{
-            console.log('Error en Delete:', e);
-            knexMy.destroy();
-        });
+    if (countProd>0) {
+        let producto = await Productos.deleteOne({_id: id})
+        res.json({producto})
     } else {
         res.json({error: 'Producto no encontrado'})
     }
@@ -154,48 +132,19 @@ router.delete('/borrar/:id', (req,res)=>{
 
 
 // 6. CENTRO DE MENSAJES
+
 const io = new Server(server);
 
-let mensajes = [];
 
-io.on("connection", (socket) => {
+io.on("connection", async (socket) => {
     console.log("Usuario conectado");
-    io.sockets.emit('productos', listProducts)
-    socket.on('nuevo', data=>{
-        mensajes.push(data);
-        io.sockets.emit('mensajes', mensajes)
-        let email = mensajes.map(e=>e.email)
-        let mensaje = mensajes.map(e=>e.mensaje)
-        let today = new Date();
-        let hora = today.toLocaleTimeString();
-        (async ()=>{
-            try {
-                await knex.schema.dropTableIfExists('centro_mensajes');
-                console.log('Tabla borrada.');
-        
-                await knex.schema.createTable('centro_mensajes', table => {
-                        table.increments('id'),
-                        table.string('email'),
-                        table.string('mensaje'),                        
-                        table.string('hora')
-                    });
-                console.log('Tabla de mensajes creada creada.');
-
-                await knex('centro_mensajes').insert({email, mensaje, hora});
-                console.log('Mensaje insertado.');
-        
-                let mensajes = await knex.from('centro_mensajes').select('*');
-                console.log('Mostrando mensaje.');
-                for (let mensaje of mensajes) {
-                    console.log(`${mensaje['id']}. ${mensaje['email']} - ${mensaje['mensaje']} - ${mensaje['hora']}`);
-                }
-                knex.destroy();
-            }
-        
-            catch(e) {
-                console.log('Error en proceso:', e);
-                knex.destroy();
-            }
-        })();
+    let productos = await Productos.find()
+    io.sockets.emit('productos', productos)
+    socket.on('nuevo', async data=>{
+        //mensajes.push(data); 
+        let horaFecha = moment().format('MMMM Do YYYY, h:mm:ss a')
+        let msg = await Mensajes.create({email: data.email, mensaje: data.mensaje, hora: horaFecha})
+        let mensajesMongo = await Mensajes.find()
+        io.sockets.emit('mensajes', mensajesMongo)              
     })
   });

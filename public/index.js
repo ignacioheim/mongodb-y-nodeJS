@@ -1,6 +1,6 @@
 const socket = io();
 
-socket.on('productos', (data)=>{
+socket.on('productos', (productos)=>{
     //console.log(data);
     let startTable = `
     <table class="table table-striped table-dark" id="table">
@@ -15,11 +15,11 @@ socket.on('productos', (data)=>{
     let endTable = `
     </table>
     `;
-    let html = data.map((e,i)=>`
+    let html = productos.map((e,i)=>`
         <tbody>
             <tr>
-                <td>${e.title}</td>
-                <td>${e.price}</td>
+                <td>${e.titulo}</td>
+                <td>${e.precio}</td>
                 <td><img src=${e.thumbnail} class="imgTable"></td>
             </tr>
         </tbody>
@@ -31,33 +31,19 @@ socket.on('productos', (data)=>{
     `;
 });
 
-socket.on('mensajes', (data)=>{
-    render(data);
-    //console.log(data)
-});
-
-
-let render = (data) => {
-    let today = new Date();
-    let hora = today.toLocaleTimeString();
-    let dd = today.getDate();
-    let mm = today.getMonth()+1; 
-    let yyyy = today.getFullYear();
-    if(dd<10) {
-        dd='0'+dd;
-        } 
-    if(mm<10) {
-        mm='0'+mm;
-    } 
-    let html = data.map((e,i)=>`
+socket.on('mensajes', (mensajesMongo)=>{
+    let html = mensajesMongo.map((e,i)=>`
         <div>
             <b style="color:blue">${e.email}</b>
-            <span style="color:brown">[${dd+'/'+mm+'/'+yyyy} ${hora}]</span>
+            <span style="color:brown">[${e.hora}]</span>
             <i style="color:green">${e.mensaje}</i>
         </div>
-    `).join(' ');
-    document.getElementById("chat").innerHTML = html;
-}
+    `).join(' ')
+    document.getElementById("chat").innerHTML =`
+    ${html}
+    `;
+});
+
 
 
 function envioMensaje(f) {
